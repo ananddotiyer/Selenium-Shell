@@ -30,6 +30,9 @@ class Selenium (Cmd, object):
         self.intro  = "Welcome to Selenium shell...\nIMPORTANT: Before you start, please ensure config.txt has the correct settings\n(Copyright 2017-18, Anand Iyer)"
         self.file = None
         self.config = {}
+        self.element = None
+        self.attribute = None
+        self.get = None
         
         #set options
         self.browser = None
@@ -79,8 +82,7 @@ class Selenium (Cmd, object):
         """
         Find element from the DOM
         If 'by' is set to 'title', use @title in an appropriate xpath.
-        If 'by' is set to 'text', use text() method in xpath.
-        If 'by' is set to 'partial_text', use "contains" method in xpath.
+        If 'by' is set to 'text', use text() method in xpath', or auto-updates to 'partial_text' (which uses "contains" method in xpath)
         """
         args = self.process_args (args)
         
@@ -95,11 +97,12 @@ class Selenium (Cmd, object):
                         self.locator = ("text", "//*[@title=\"" + args + "\"]")
                         elementFound = self.find ("xpath",  self.locator[1])
                     elif self.by == 'text':
-                        self.locator = ("text", "//*[text()=\"" + args + "\"]")
-                        elementFound = self.find ("xpath",  self.locator[1])
-                    elif self.by == 'partial_text':
-                        self.locator = ("partial_text", "//*[contains (text(),\"" + args + "\")]")
-                        elementFound = self.find ("xpath",  self.locator[1])
+                        try:
+                            self.locator = ("text", "//*[text()=\"" + args + "\"]")
+                            elementFound = self.find ("xpath",  self.locator[1])
+                        except:
+                            self.locator = ("partial_text", "//*[contains (text(),\"" + args + "\")]")
+                            elementFound = self.find ("xpath",  self.locator[1])
                     else:
                         self.locator = (self.by, args)
                         elementFound = self.find (self.by,  args)
@@ -192,8 +195,54 @@ class Selenium (Cmd, object):
 
     def do_reset (self, args):
         """Reset a previous setting"""""
+        args = self.process_args (args)
         setattr (self, args, None)
-        
+
+    def do_getattr (self, args):
+        """
+        Gets the attribute of the most recent web-element.
+        Available options=tag_name, type, text, innerHTML, outerHTML, size, location, parent, id, page_title
+        """
+        args = self.process_args (args)
+        try:
+            if args == "page_title":
+                self.locator = ("browser", "browser") #so that 'equals' and 'contains' gives output, consistent with other locators.
+                self.get = (args, getattr (self.browser, "title"))
+                self.attribute = args
+            else:
+                self.get = (args, getattr (self, "element." + args))
+                self.attribute = args
+            print self.get
+        except:
+            if self.element:
+                self.get = (args, self.element.get_attribute (args))
+                self.attribute = args
+                print self.get
+            else:
+                self.handle_exception ()
+                        
+    def do_equals (self, args):
+        "Verifies if the given value is same the most recent get_attribute"
+        args = self.process_args (args)
+        try:
+            if args == self.get[1]:
+                print "True\n('%s', '%s', '%s')" %(self.locator[1], self.attribute, args)
+            else:
+                print "False\n('%s', '%s', '%s')" %(self.locator[1], self.attribute, args)
+        except:
+            self.handle_exception()
+            
+    def do_contains (self, args):
+        "Verifies if the most recent get_attribute contains (substring) given value"
+        args = self.process_args (args)
+        try:
+            if args in self.get[1]:
+                print "True\n('%s', '%s', '%s')" %(self.locator[1], self.attribute, args)
+            else:
+                print "False\n('%s', '%s', '%s')" %(self.locator[1], self.attribute, args)
+        except:
+            self.handle_exception()
+            
     def do_what (self, args):
         """Outputs the present value of a variable"""
         try:
@@ -338,7 +387,8 @@ class Selenium (Cmd, object):
     #cmd.py - redefined, overridden methods
     def onecmd (self, line):
         supported_commands = ['browse', 'find', 'click', 'send_keys', 'close', 'quit', 'set', 'reset',
-                              'eval', 'what', 'shell', 'start', 'playback', 'stop', 'help']
+                              'getattr', 'equals', 'contains', 'eval',
+                              'what', 'start', 'playback', 'stop', 'help']
 
         if self.file and line.startswith ('#'): #lines starting with # are comments; don't process them.
             self.file.write (line + '\n')

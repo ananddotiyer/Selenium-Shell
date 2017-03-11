@@ -1,0 +1,4 @@
+homepage = "http:////www.google.com"
+
+geckodriver_path = "D:\\Software\\WebDrivers\\geckodriver.exe"
+chromedriver_path = "D:\Software\WebDrivers\chromedriver.exe"
