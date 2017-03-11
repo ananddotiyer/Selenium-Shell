@@ -261,10 +261,10 @@ class Selenium (Cmd, object):
     def do_start(self, arg):
         'Use it for recording, and creating actionchains'
         if arg == '':
-            arg = 'record.txt'
+            arg = 'record'
         
         if arg == 'record' and not self.actions:
-            self.file = open(arg, 'w')
+            self.file = open(arg + ".txt", 'w')
         elif arg == 'actions':
             self.actions = True
             self.actionsList = []
