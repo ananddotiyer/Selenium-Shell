@@ -31,6 +31,7 @@ class Selenium (Cmd, object):
         self.intro  = "Welcome to Selenium shell...\nIMPORTANT: Before you start, please ensure config.txt has the correct settings\n(Copyright 2017-18, Anand Iyer)"
         self.file = None
         self.config = {}
+        self.elements = None
         self.element = None
         self.attribute = None
         self.get = None
@@ -42,6 +43,7 @@ class Selenium (Cmd, object):
         self.actions = False
         self.tries = 4
         self.trace = 'on'
+        self.find_index = 1 #locator among all elements returned by find (1-based index).  By default, set to the first element.
         
         #reading config file
         fp = open ("config.txt")
@@ -58,8 +60,9 @@ class Selenium (Cmd, object):
         Automatically prefixes "http://" to the given web-page.
         Defaults to homepage set in config.py
         """
+        args = self.process_args (args)
+    
         try:
-            args = self.process_args (args)
             if len(args) == 0:
                 url = self.config["homepage"]
             else:
@@ -81,17 +84,20 @@ class Selenium (Cmd, object):
             
     def do_find (self, args):
         """
-        Find element from the DOM
+        Find matching elements from the DOM
         If 'by' is set to 'title', use @title in an appropriate xpath.
         If 'by' is set to 'text', use text() method in xpath', or auto-updates to 'partial_text' (which uses "contains" method in xpath)
         """
         args = self.process_args (args)
         
+        self.element = None
+        self.elements = None
+        
         countLoop = 0
         elementFound = False
 
         if self.by != None:
-            #try 10 times by default, before giving up.  Or self.tries.
+            #try 4 times by default, before giving up.  Or self.tries.
             while countLoop <= int (self.tries) and not elementFound:
                 try:
                     if self.by == 'title':
@@ -136,6 +142,7 @@ class Selenium (Cmd, object):
     def do_click (self, args):
         """Clicks on the specified web-element"""
         try:
+            self.locate_element ()
             if not self.actions:
                 self.element.click ()
         except:
@@ -145,7 +152,9 @@ class Selenium (Cmd, object):
     def do_send_keys (self, args):
         """Send keys to the specified web-element"""
         args = self.process_args (args)
+        
         try:
+            self.locate_element ()
             if not self.actions:
                 self.element.send_keys(args)
         except:
@@ -158,13 +167,10 @@ class Selenium (Cmd, object):
         except:
             self.handle_exception ()
 
-    def quit_browser (self):
-        self.browser.quit ()
-        self.browser = None
-    
     def do_quit(self, args):
         """Quits the program."""
         print "Quitting."
+
         try:
             self.quit_browser ()
             raise SystemExit
@@ -179,7 +185,8 @@ class Selenium (Cmd, object):
         2.by: used for locator-based web-element search.  Available options=title, text, partial_text, id, name, xpath, partial_link_text, tag_name, class_name, css_selector
         3.until: used for waiting until expected conditions is met.  Available options=click, present, visible, invisible, text, text_present, text_present_locator, selection_state, located_selection_state
         4.tries:used to indicate number of times to repeat find_element logic in loops.
-        5.trace: used to set to 'on' and 'off'.
+        5.find_index:used to indicate the index of element, returned by the last find operation.
+        6.trace: used to set to 'on' and 'off'.
         
         Value can be a return value from a eval (expression)
         """
@@ -197,6 +204,7 @@ class Selenium (Cmd, object):
     def do_reset (self, args):
         """Reset a previous setting"""""
         args = self.process_args (args)
+
         setattr (self, args, None)
 
     def do_getattr (self, args):
@@ -205,7 +213,9 @@ class Selenium (Cmd, object):
         Available options=tag_name, type, text, innerHTML, outerHTML, size, location, parent, id, page_title
         """
         args = self.process_args (args)
+
         try:
+            self.locate_element ()
             if args == "page_title":
                 self.locator = ("browser", "browser") #so that 'equals' and 'contains' gives output, consistent with other locators.
                 self.get = (args, getattr (self.browser, "title"))
@@ -226,6 +236,7 @@ class Selenium (Cmd, object):
     def do_equals (self, args):
         "Verifies if the given value is same the most recent get_attribute"
         args = self.process_args (args)
+
         try:
             if args == self.get[1]:
                 print "True\n('%s', '%s', '%s')" %(self.locator[1], self.attribute, args)
@@ -237,6 +248,7 @@ class Selenium (Cmd, object):
     def do_contains (self, args):
         "Verifies if the most recent get_attribute contains (substring) given value"
         args = self.process_args (args)
+        
         try:
             if args in self.get[1]:
                 print "True\n('%s', '%s', '%s')" %(self.locator[1], self.attribute, args)
@@ -247,6 +259,8 @@ class Selenium (Cmd, object):
             
     def do_what (self, args):
         """Outputs the present value of a variable"""
+        args = self.process_args (args)
+        
         try:
             print getattr (self, args)
         except:
@@ -254,46 +268,54 @@ class Selenium (Cmd, object):
 
     def do_eval (self, args):
         """Evaluates the given string as a Python statement"""
+        args = self.process_args (args)
+        
         try:
-            args = self.process_args (args)
+            self.locate_element ()
             print eval (args)
         except:
             self.handle_exception ()
 
-    def do_start(self, arg):
+    def do_start(self, args):
         'Use it for recording, and creating actionchains'
-        if arg == '':
-            arg = 'record'
+        args = self.process_args (args)
         
-        if arg == 'record' and not self.actions:
-            self.file = open(arg + ".txt", 'w')
-        elif arg == 'actions':
+        if args == '':
+            args = 'record'
+        
+        if args == 'record' and not self.actions:
+            self.file = open(args + ".txt", 'w')
+        elif args == 'actions':
             self.actions = True
             self.actionsList = []
             self.actions_elements = []
             
-    def do_playback(self, arg):
+    def do_playback(self, args):
         'Playback commands from a recorded sequence'
-        if arg == '':
-            arg = 'record.txt'
-        self.do_stop (arg)
+        args = self.process_args (args)
+        
+        if args == '':
+            args = 'record.txt'
+        self.do_stop (args)
         try:
-            with open(arg) as f:
+            with open(args) as f:
                 self.cmdqueue.extend(f.read().splitlines())
         except:
             print '-'*60
             print 'Specified file not found!'
             print '-'*60            
 
-    def do_stop(self, arg):
+    def do_stop(self, args):
         'Use it to denote end of recording, and actionchains'
-        if arg == '':
-            arg = 'record'
+        args = self.process_args (args)
+        
+        if args == '':
+            args = 'record'
 
-        if self.file and arg == 'record' and not self.actions:
+        if self.file and args == 'record' and not self.actions:
             self.file.close()
             self.file = None
-        elif arg == 'actions':
+        elif args == 'actions':
             self.actions = False
             try:
                 action_chains = ActionChains(self.browser)
@@ -314,6 +336,10 @@ class Selenium (Cmd, object):
             self.actionsList = []
 
     #internal methods
+    def quit_browser (self):
+        self.browser.quit ()
+        self.browser = None
+    
     def find (self, by, locator, *kwargs):
         try:
             self.locator = (by, locator)
@@ -324,7 +350,9 @@ class Selenium (Cmd, object):
             if self.actions:
                 self.actions_elements.append (getattr (self.browser, "find_element_by_" + by) (locator))
             else:
-                self.element = getattr (self.browser, "find_element_by_" + by) (locator)
+                self.elements = getattr (self.browser, "find_elements_by_" + by) (locator) #this won't raise an exception, but return an empty list
+                if len (self.elements) == 0:
+                    raise
                 
             return self.wait_until (by, locator, *kwargs) #elementFound
         except:
@@ -378,6 +406,9 @@ class Selenium (Cmd, object):
             traceback.print_exc(file=sys.stdout)
             print '-'*60            
 
+    def locate_element (self):
+        self.element = self.elements[int (self.find_index) - 1]
+    
     def build_function (self, action, element):
         pre = action.split (" ")
         
