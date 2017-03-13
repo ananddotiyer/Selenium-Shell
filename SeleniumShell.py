@@ -17,6 +17,7 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from time import sleep
 import sys, traceback
+from selenium.common.exceptions import *
 from selenium.webdriver import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -39,7 +40,7 @@ class Selenium (Cmd, object):
         self.by = None
         self.until = None
         self.actions = False
-        self.tries = 10
+        self.tries = 4
         self.trace = 'on'
         
         #reading config file
@@ -214,11 +215,12 @@ class Selenium (Cmd, object):
                 self.attribute = args
             print self.get
         except:
-            if self.element:
-                self.get = (args, self.element.get_attribute (args))
-                self.attribute = args
-                print self.get
-            else:
+            try:
+                if self.element:
+                    self.get = (args, self.element.get_attribute (args))
+                    self.attribute = args
+                    print self.get
+            except:
                 self.handle_exception ()
                         
     def do_equals (self, args):
