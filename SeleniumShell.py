@@ -16,7 +16,7 @@ from cmd import Cmd
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from time import sleep
-import sys, traceback
+import os, sys, traceback
 import pyperclip
 from selenium.common.exceptions import *
 from selenium.webdriver import ActionChains
@@ -37,7 +37,7 @@ class Selenium (Cmd, object):
         self.attribute = None
         self.get = None
         
-        self.get_config ("config.txt")
+        self.get_config (os.path.realpath(__file__) + "\\config.txt")
         self.config_backup = self.config.copy ()
         
     #Selenium methods      
@@ -120,18 +120,22 @@ class Selenium (Cmd, object):
                     countLoop += 1
 
         if elementFound:
-            pyperclip.copy (self.locator[1])
-            print self.locator, " found %s elements" %(len(self.elements))
+            print self.locator,
+            if not self.config["actions"]:
+                pyperclip.copy (self.locator[1])
+                print " found %s elements" %(len(self.elements)),
+
+            print
         else:
             print '-'*60
             print 'Unable to locate web-element using any of the available locators!'
             print '-'*60            
-
+    
     def do_click (self, args):
         """Clicks on the specified web-element"""
         try:
-            self.locate_element ()
             if not self.config["actions"]:
+                self.locate_element ()
                 self.element.click ()
         except:
             self.handle_exception ()
@@ -142,8 +146,8 @@ class Selenium (Cmd, object):
         args = self.process_args (args)
         
         try:
-            self.locate_element ()
             if not self.config["actions"]:
+                self.locate_element ()
                 self.element.send_keys(args)
         except:
             self.handle_exception ()
@@ -194,11 +198,15 @@ class Selenium (Cmd, object):
         """Reset a previous setting"""""
         args = self.process_args (args)
 
-        if args == all:
-            self.do_config ("config.txt")
+        if args == "all":
+            for key in self.config_backup.keys():
+                #if the browser already has an associated session,don't reset.  Reset all else.
+                if not (key == "browser" and type (self.config[key] == str)):
+                    self.config[key] = self.config_backup[key]
         else:
-            self.config = self.config_backup.copy ()
-        #setattr (self, args, None)
+            #if the browser already has an associated session,don't reset
+            if not (args == "browser" and type (self.config[args] == str)):
+                self.config[args] = self.config_backup[args]
 
     def do_getattr (self, args):
         """
@@ -255,8 +263,6 @@ class Selenium (Cmd, object):
         args = self.process_args (args)
         
         try:
-            if args == "element":
-                self.locate_element ()
             print getattr (self, "config")['%s' %(args)]
         except:
             self.handle_exception ()
