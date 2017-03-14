@@ -133,7 +133,7 @@ class Selenium (Cmd, object):
                     countLoop += 1
 
         if elementFound:
-            print self.locator
+            print self.locator, " found %s elements" %(len(self.elements))
         else:
             print '-'*60
             print 'Unable to locate web-element using any of the available locators!'
@@ -262,6 +262,8 @@ class Selenium (Cmd, object):
         args = self.process_args (args)
         
         try:
+            if args == "element":
+                self.locate_element ()
             print getattr (self, args)
         except:
             self.handle_exception ()
