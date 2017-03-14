@@ -2,3 +2,12 @@ homepage = "http:////www.google.com"
 
 geckodriver_path = "D:\\Software\\WebDrivers\\geckodriver.exe"
 chromedriver_path = "D:\Software\WebDrivers\chromedriver.exe"
+
+#set options
+browser = None
+by = None
+until = None
+actions = False
+tries = 2
+trace = on
+find_index = 1

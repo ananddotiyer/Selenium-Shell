@@ -17,6 +17,7 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from time import sleep
 import sys, traceback
+import pyperclip
 from selenium.common.exceptions import *
 from selenium.webdriver import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
@@ -36,23 +37,9 @@ class Selenium (Cmd, object):
         self.attribute = None
         self.get = None
         
-        #set options
-        self.browser = None
-        self.by = None
-        self.until = None
-        self.actions = False
-        self.tries = 4
-        self.trace = 'on'
-        self.find_index = 1 #locator among all elements returned by find (1-based index).  By default, set to the first element.
+        self.get_config ("config.txt")
+        self.config_backup = self.config.copy ()
         
-        #reading config file
-        fp = open ("config.txt")
-        for line in fp:
-            line = self.process_args (line)
-            if line != "":
-                items = line.split ('=')
-                self.config[self.process_args (items[0])] = self.process_args (items[1])
-            
     #Selenium methods      
     def do_browse(self, args):
         """
@@ -71,14 +58,14 @@ class Selenium (Cmd, object):
             if not url.startswith ("http"): #or https
                 url = "http://" + url
                 
-            if self.browser == None or self.browser == "firefox":
-                self.browser = webdriver.Firefox(executable_path=self.config["geckodriver_path"])
-            if self.browser == "chrome":
-                self.browser = webdriver.Chrome (self.config["chromedriver_path"])
+            if self.config["browser"] == None or self.config["browser"] == "firefox":
+                self.config["browser"] = webdriver.Firefox(executable_path=self.config["geckodriver_path"])
+            if self.config["browser"] == "chrome":
+                self.config["browser"] = webdriver.Chrome (self.config["chromedriver_path"])
             
-            self.browser.get(url)
-            self.browser.maximize_window ()
-            self.browser.implicitly_wait(0)
+            self.config["browser"].get(url)
+            self.config["browser"].maximize_window ()
+            self.config["browser"].implicitly_wait(0)
         except:
             self.handle_exception ()
             
@@ -96,14 +83,14 @@ class Selenium (Cmd, object):
         countLoop = 0
         elementFound = False
 
-        if self.by != None:
-            #try 4 times by default, before giving up.  Or self.tries.
-            while countLoop <= int (self.tries) and not elementFound:
+        if self.config["by"] != None:
+            #try 4 times by default, before giving up.  Or self.config["tries"].
+            while countLoop <= int (self.config["tries"]) and not elementFound:
                 try:
-                    if self.by == 'title':
+                    if self.config["by"] == 'title':
                         self.locator = ("text", "//*[@title=\"" + args + "\"]")
                         elementFound = self.find ("xpath",  self.locator[1])
-                    elif self.by == 'text':
+                    elif self.config["by"] == 'text':
                         try:
                             self.locator = ("text", "//*[text()=\"" + args + "\"]")
                             elementFound = self.find ("xpath",  self.locator[1])
@@ -111,15 +98,15 @@ class Selenium (Cmd, object):
                             self.locator = ("partial_text", "//*[contains (text(),\"" + args + "\")]")
                             elementFound = self.find ("xpath",  self.locator[1])
                     else:
-                        self.locator = (self.by, args)
-                        elementFound = self.find (self.by,  args)
+                        self.locator = (self.config["by"], args)
+                        elementFound = self.find (self.config["by"],  args)
                 except:
                     self.handle_exception ()
 
                 sleep (1)
                 countLoop += 1
-        elif (self.by != 'partial_text' and self.by != 'text'):
-            while countLoop <= int (self.tries) and not elementFound:
+        elif (self.config["by"] != 'partial_text' and self.config["by"] != 'text'):
+            while countLoop <= int (self.config["tries"]) and not elementFound:
                     print "(%d) Trying all available locators [unable to locate element using 'by']" %(countLoop)
                     by_list = ["id", "name", "xpath", "partial_link_text", "link_text", "tag_name", "class_name", "css_selector"]
                     import collections
@@ -133,6 +120,7 @@ class Selenium (Cmd, object):
                     countLoop += 1
 
         if elementFound:
+            pyperclip.copy (self.locator[1])
             print self.locator, " found %s elements" %(len(self.elements))
         else:
             print '-'*60
@@ -143,7 +131,7 @@ class Selenium (Cmd, object):
         """Clicks on the specified web-element"""
         try:
             self.locate_element ()
-            if not self.actions:
+            if not self.config["actions"]:
                 self.element.click ()
         except:
             self.handle_exception ()
@@ -155,7 +143,7 @@ class Selenium (Cmd, object):
         
         try:
             self.locate_element ()
-            if not self.actions:
+            if not self.config["actions"]:
                 self.element.send_keys(args)
         except:
             self.handle_exception ()
@@ -192,20 +180,25 @@ class Selenium (Cmd, object):
         """
         args = str (args).split ('=')
         
-        value = self.process_args (args[1])
+        key = self.process_args (args[0])
+        value = self.process_args (args[1].lower())
+        
         if value.startswith ("eval"):
             value = eval (value)
             if type (value) == str:
                 value = value.lower ()
-        else:
-            value = self.process_args (args[1].lower())
-        setattr (self, self.process_args (args[0]), value)
+        
+        self.config[key] = value
 
     def do_reset (self, args):
         """Reset a previous setting"""""
         args = self.process_args (args)
 
-        setattr (self, args, None)
+        if args == all:
+            self.do_config ("config.txt")
+        else:
+            self.config = self.config_backup.copy ()
+        #setattr (self, args, None)
 
     def do_getattr (self, args):
         """
@@ -218,7 +211,7 @@ class Selenium (Cmd, object):
             self.locate_element ()
             if args == "page_title":
                 self.locator = ("browser", "browser") #so that 'equals' and 'contains' gives output, consistent with other locators.
-                self.get = (args, getattr (self.browser, "title"))
+                self.get = (args, getattr (self.config["browser"], "title"))
                 self.attribute = args
             else:
                 self.get = (args, getattr (self, "element." + args))
@@ -264,7 +257,7 @@ class Selenium (Cmd, object):
         try:
             if args == "element":
                 self.locate_element ()
-            print getattr (self, args)
+            print getattr (self, "config")['%s' %(args)]
         except:
             self.handle_exception ()
 
@@ -285,10 +278,10 @@ class Selenium (Cmd, object):
         if args == '':
             args = 'record'
         
-        if args == 'record' and not self.actions:
+        if args == 'record' and not self.config["actions"]:
             self.file = open(args + ".txt", 'w')
         elif args == 'actions':
-            self.actions = True
+            self.config["actions"] = True
             self.actionsList = []
             self.actions_elements = []
             
@@ -314,13 +307,13 @@ class Selenium (Cmd, object):
         if args == '':
             args = 'record'
 
-        if self.file and args == 'record' and not self.actions:
+        if self.file and args == 'record' and not self.config["actions"]:
             self.file.close()
             self.file = None
         elif args == 'actions':
-            self.actions = False
+            self.config["actions"] = False
             try:
-                action_chains = ActionChains(self.browser)
+                action_chains = ActionChains(self.config["browser"])
                 
                 #constructing the actions sequence
                 mod_actions = []
@@ -339,8 +332,8 @@ class Selenium (Cmd, object):
 
     #internal methods
     def quit_browser (self):
-        self.browser.quit ()
-        self.browser = None
+        self.config["browser"].quit ()
+        self.config["browser"] = None
     
     def find (self, by, locator, *kwargs):
         try:
@@ -349,10 +342,10 @@ class Selenium (Cmd, object):
             if by == "link_text":
                 by = "partial_link_text"
 
-            if self.actions:
-                self.actions_elements.append (getattr (self.browser, "find_element_by_" + by) (locator))
+            if self.config["actions"]:
+                self.actions_elements.append (getattr (self.config["browser"], "find_element_by_" + by) (locator))
             else:
-                self.elements = getattr (self.browser, "find_elements_by_" + by) (locator) #this won't raise an exception, but return an empty list
+                self.elements = getattr (self.config["browser"], "find_elements_by_" + by) (locator) #this won't raise an exception, but return an empty list
                 if len (self.elements) == 0:
                     raise
                 
@@ -380,36 +373,64 @@ class Selenium (Cmd, object):
     def wait_until (self, by, path, *args):
         """Wait until expected condition is met.  Used internal to find method"""
         try:
-            wait = WebDriverWait(self.browser, 10)
-            if self.until == "click":
+            wait = WebDriverWait(self.config["browser"], 10)
+            if self.config["until"] == "click":
                 _ = wait.until(EC.element_to_be_clickable((by, path)))
-            if self.until == "present":
+            if self.config["until"] == "present":
                 _ = wait.until(EC.presence_of_element_located((by, path)))
-            if self.until == "visible":
+            if self.config["until"] == "visible":
                 _ = wait.until(EC.visibility_of_element_located((by, path)))
-            if self.until == "invisible":
+            if self.config["until"] == "invisible":
                 _ = wait.until(EC.invisibility_of_element_located((by, path)))
-            if self.until == "text_present":
+            if self.config["until"] == "text_present":
                 _ = wait.until(EC.text_to_be_present_in_element((by, path, kwargs))) #_text
-            if self.until == "text_present_locator":
+            if self.config["until"] == "text_present_locator":
                 _ = wait.until(EC.text_to_be_present_in_element_value((by, path, kwargs))) #_text
-            if self.until == "selection_state":
+            if self.config["until"] == "selection_state":
                 _ = wait.until(EC.element_selection_state_to_be((by, path)))
-            if self.until == "located_selection_state":
+            if self.config["until"] == "located_selection_state":
                 _ = wait.until(EC.element_located_selection_state_to_be((by, path, kwargs))) #is_selected
             return True
         except:
             return False
 
     def handle_exception (self):
-        if self.trace == 'on':
+        if self.config["trace"] == 'on':
             print "Exception in user code:"
             print '-'*60
             traceback.print_exc(file=sys.stdout)
             print '-'*60            
 
+    def get_config (self, filepath):
+        #reading config file
+        fp = open ("config.txt")
+        for line in fp:
+            line = self.process_args (line)
+            try:
+                if '=' in line:
+                    items = line.split ('=')
+                    key = self.process_args (items[0])
+                    value = self.process_args (items[1])
+                    self.config[key] = self.get_value (value)
+            except:
+                pass
+        fp.close ()
+    
+    def get_value (self, arg):
+        if arg == "None":
+            return None
+        elif arg == "True":
+            return True
+        elif arg == "False":
+            return False
+        else: #integer or string
+            try:
+                return int (arg)
+            except ValueError:
+                return str (arg)
+    
     def locate_element (self):
-        self.element = self.elements[int (self.find_index) - 1]
+        self.element = self.elements[int (self.config["find_index"]) - 1]
     
     def build_function (self, action, element):
         pre = action.split (" ")
@@ -480,7 +501,7 @@ class Selenium (Cmd, object):
                 allowed = True
                 break
 
-        if self.actions and (allowed):
+        if self.config["actions"] and (allowed):
             self.actionsList.append (line)
         sleep (1)
 
