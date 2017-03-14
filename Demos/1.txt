@@ -1,0 +1,13 @@
+browse www.python.org
+start actions
+set by = text
+find Documentation
+move_to_element it
+find "Python 3.x Docs"
+click it
+stop actions
+reset by
+find q
+#Searches for a term 'dictionary' in the python3.6 doc.  Alternative logic (actions) is given in the next demo file.
+eval "self.element.send_keys ('dictionary' + Keys.ENTER)"
+#no automatic close

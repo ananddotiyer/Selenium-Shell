@@ -1,0 +1,7 @@
+browse
+start actions
+find lst-ib
+send_keys "Anand"
+send_keys Keys.ENTER
+stop actions
+#no close automatically

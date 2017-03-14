@@ -1,0 +1,13 @@
+browse www.moolya.com
+start actions
+find "TESTING SOLUTIONS"
+move_to_element it
+find Services
+move_to_element it
+find "Functional testing"
+click it
+stop actions
+find "Performance Test Data"
+getattr innerHTML
+click
+#no close automatically
