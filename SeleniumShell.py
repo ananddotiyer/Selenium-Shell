@@ -201,26 +201,6 @@ class Selenium (Cmd, object):
         except:
             self.handle_exception ()
         
-    def highlight_element (self):
-        with open ("get_element_border.js") as script_get_element_border:
-            SCRIPT_GET_ELEMENT_BORDER = ''.join (script_get_element_border.readlines ())
-
-        self.unhighlight_last()
-        
-        #remember last element to highlight
-        self.last_element = self.element
-        self.last_border = self.config["browser"].execute_script (SCRIPT_GET_ELEMENT_BORDER, self.element)
-        #self.config["browser"].execute_script("arguments[0].style.border='2px solid red'", self.element)
-
-    def unhighlight_last (self):
-        with open ("unhighlight_last.js") as script_unhighlight_last:
-            SCRIPT_UNHIGHLIGHT_LAST = ''.join (script_unhighlight_last.readlines ())
-
-        try:
-            self.config["browser"].execute_script (SCRIPT_UNHIGHLIGHT_LAST, self.last_element, self.last_border);
-        except:
-            pass
-        
     def do_reset (self, args):
         """Reset a previous setting"""""
         args = self.process_args (args)
@@ -426,6 +406,26 @@ class Selenium (Cmd, object):
             return True
         except:
             return False
+
+    def highlight_element (self):
+        with open ("get_element_border.js") as script_get_element_border:
+            SCRIPT_GET_ELEMENT_BORDER = ''.join (script_get_element_border.readlines ())
+
+        self.unhighlight_last()
+        
+        #remember last element to highlight
+        self.last_element = self.element
+        self.last_border = self.config["browser"].execute_script (SCRIPT_GET_ELEMENT_BORDER, self.element)
+        #self.config["browser"].execute_script("arguments[0].style.border='2px solid red'", self.element)
+
+    def unhighlight_last (self):
+        with open ("unhighlight_last.js") as script_unhighlight_last:
+            SCRIPT_UNHIGHLIGHT_LAST = ''.join (script_unhighlight_last.readlines ())
+
+        try:
+            self.config["browser"].execute_script (SCRIPT_UNHIGHLIGHT_LAST, self.last_element, self.last_border);
+        except:
+            pass
 
     def handle_exception (self):
         if self.config["trace"] == 'on':
