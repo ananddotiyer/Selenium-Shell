@@ -11,7 +11,9 @@ Some of the core features of this tool:
 - Handles selenium actions class.
 - Handles existing browser session well.
 - Well-suited to run browser compatibility tests.
-- Get attribute values of most recently found web-element
+- Get all elements meeting the criteria.
+- Get attribute values of the "indexed" web-element
+- Highlight currently "indexed" element on the browser.
 - Basic verification added (equality, containment of strings)
 - "eval" to handle all other "unsupported features" (available in Selenium).
 - Self-documented.  Type "?" inside the shell.  Type "?<command>" to get help on the command.
