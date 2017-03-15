@@ -177,7 +177,7 @@ class Selenium (Cmd, object):
         2.by: used for locator-based web-element search.  Available options=title, text, partial_text, id, name, xpath, partial_link_text, tag_name, class_name, css_selector
         3.until: used for waiting until expected conditions is met.  Available options=click, present, visible, invisible, text, text_present, text_present_locator, selection_state, located_selection_state
         4.tries:used to indicate number of times to repeat find_element logic in loops.
-        5.find_index:used to indicate the index of element, returned by the last find operation.
+        5.index:used to indicate the index of element, returned by the last find operation.
         6.trace: used to set to 'on' and 'off'.
         
         Value can be a return value from a eval (expression)
@@ -187,13 +187,40 @@ class Selenium (Cmd, object):
         key = self.process_args (args[0])
         value = self.process_args (args[1].lower())
         
-        if value.startswith ("eval"):
-            value = eval (value)
-            if type (value) == str:
-                value = value.lower ()
-        
-        self.config[key] = value
+        try:
+            if value.startswith ("eval"):
+                value = eval (value)
+                if type (value) == str:
+                    value = value.lower ()
+            
+            self.config[key] = value
 
+            if key == "index":
+                self.locate_element ()
+                self.highlight_element()
+        except:
+            self.handle_exception ()
+        
+    def highlight_element (self):
+        with open ("get_element_border.js") as script_get_element_border:
+            SCRIPT_GET_ELEMENT_BORDER = ''.join (script_get_element_border.readlines ())
+
+        self.unhighlight_last()
+        
+        #remember last element to highlight
+        self.last_element = self.element
+        self.last_border = self.config["browser"].execute_script (SCRIPT_GET_ELEMENT_BORDER, self.element)
+        #self.config["browser"].execute_script("arguments[0].style.border='2px solid red'", self.element)
+
+    def unhighlight_last (self):
+        with open ("unhighlight_last.js") as script_unhighlight_last:
+            SCRIPT_UNHIGHLIGHT_LAST = ''.join (script_unhighlight_last.readlines ())
+
+        try:
+            self.config["browser"].execute_script (SCRIPT_UNHIGHLIGHT_LAST, self.last_element, self.last_border);
+        except:
+            pass
+        
     def do_reset (self, args):
         """Reset a previous setting"""""
         args = self.process_args (args)
@@ -436,7 +463,7 @@ class Selenium (Cmd, object):
                 return str (arg)
     
     def locate_element (self):
-        self.element = self.elements[int (self.config["find_index"]) - 1]
+        self.element = self.elements[int (self.config["index"]) - 1]
     
     def build_function (self, action, element):
         pre = action.split (" ")
