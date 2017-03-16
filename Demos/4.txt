@@ -1,0 +1,9 @@
+set browser = chrome
+browse www.safaribooksonline.com
+start actions
+find search
+click it
+send_keys "Software Test Automation"
+send_keys Keys.ENTER
+stop actions
+#no close automatically

@@ -13,6 +13,7 @@ __status__ = "In progress" #Upgrade to complete later.
 #############################################################################################################################################
 
 from cmd import Cmd
+import re
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from time import sleep
@@ -466,7 +467,7 @@ class Selenium (Cmd, object):
         self.element = self.elements[int (self.config["index"]) - 1]
     
     def build_function (self, action, element):
-        pre = action.split (" ")
+        pre = re.findall(r'([\w\.]+|".*?")', action) #break into multiple pieces around spaces, unless they're inside double quotes.  However treat Keys.ENTER as a single piece.
         
         return (pre[0] + "(" + ','.join (pre[1:]).strip ("[]").replace ("it", element) + ")")
     
