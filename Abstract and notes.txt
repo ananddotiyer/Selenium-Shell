@@ -1,8 +1,8 @@
 Selenium-Shell:
 
-If you've worked with the DOS (on Microsoft Windows) or the terminal (on Linux/Mac), you know what a shell is, and what benefits does it bring.
+If you've worked with the DOS (on Microsoft Windows) or the Terminal (on Linux/Mac), you know what a shell is, and what benefits does it bring.
 
-Shell (Software) is an environment, typical of operating systems, where you execute commands, one at a time.  You'll see the output of each command, immediately following its submission.  The design is simple, and you can virtually 'count' the number of features.  Essentialy, simplicity is the power, when speaking about shells.  That is a benefit, unparalleled by any other solution.
+Software shells are environments, typical of operating systems, where you execute commands, one at a time.  You'll see the output of each command, immediately following its submission.  The design is simple, and you can virtually 'count' the number of features.  Essentially, simplicity is its power, when speaking about shells.  That is a benefit, unparalleled by any other solution.
 
 Most shells also allow programming on top of what it offers already.  Selenium-Shell also does.
 
