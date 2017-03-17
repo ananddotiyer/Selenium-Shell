@@ -241,9 +241,9 @@ class Selenium (Cmd, object):
             except:
                 self.handle_exception ()
 
-        #copy xpath to clipboard
+        #copy xpath to clipboard.  The produced xpaths may not be usable as such, since these attributes could be inherited.
         xpath = "//*"
-        attribs = {'id':'@id', 'name':'@name', 'text':'text()'}
+        attribs = {'id':'@id', 'name':'@name', 'class':'@class', 'text':'text()'}
         for attrib in attribs.keys():
             try:
                 element_attrib = self.element.get_attribute (attrib)
