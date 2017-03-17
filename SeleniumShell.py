@@ -123,7 +123,6 @@ class Selenium (Cmd, object):
         if elementFound:
             print self.locator,
             if not self.config["actions"]:
-                pyperclip.copy (self.locator[1])
                 print " found %s elements" %(len(self.elements)),
 
             print
@@ -219,7 +218,7 @@ class Selenium (Cmd, object):
     def do_getattr (self, args):
         """
         Gets the attribute of the most recent web-element.
-        Available options=tag_name, type, text, innerHTML, outerHTML, size, location, parent, id, page_title
+        Available options=tag_name, type, text, innerHTML, outerHTML, size, location, parent, id, name, page_title
         """
         args = self.process_args (args)
 
@@ -241,6 +240,19 @@ class Selenium (Cmd, object):
                     print self.get
             except:
                 self.handle_exception ()
+
+        #copy xpath to clipboard
+        xpath = "//*"
+        attribs = {'id':'@id', 'name':'@name', 'text':'text()'}
+        for attrib in attribs.keys():
+            try:
+                element_attrib = self.element.get_attribute (attrib)
+                if not (element_attrib == "" or element_attrib == "None"):
+                    xpath += "[%s='%s']" %(attribs[attrib], element_attrib)
+            except:
+                pass
+        
+        pyperclip.copy (xpath)
                         
     def do_equals (self, args):
         "Verifies if the given value is same the most recent get_attribute"
