@@ -35,8 +35,8 @@ class Selenium (Cmd, object):
         self.config = {}
         self.elements = None
         self.element = None
-        self.attribute = None
-        self.get = None
+        self.attribute = ""
+        self.get = ""
         
         self.get_config (os.path.realpath(__file__) + "\\config.txt")
         self.config_backup = self.config.copy ()
@@ -87,23 +87,27 @@ class Selenium (Cmd, object):
         if self.config["by"] != None:
             #try 4 times by default, before giving up.  Or self.config["tries"].
             while countLoop <= int (self.config["tries"]) and not elementFound:
-                try:
-                    if self.config["by"] == 'title':
-                        self.locator = ("text", "//*[@title=\"" + args + "\"]")
+                print "(%d) Trying to locate element using 'by'" %(countLoop)
+                if self.config["by"] == 'title':
+                    self.locator = ("text", "//*[@title=\"" + args + "\"]")
+                    elementFound = self.find ("xpath",  self.locator[1])
+                elif self.config["by"] == 'text':
+                    try:
+                        self.locator = ("text", "//*[text()=\"" + args + "\"]")
                         elementFound = self.find ("xpath",  self.locator[1])
-                    elif self.config["by"] == 'text':
+                    except:
                         try:
-                            self.locator = ("text", "//*[text()=\"" + args + "\"]")
-                            elementFound = self.find ("xpath",  self.locator[1])
-                        except:
                             self.locator = ("partial_text", "//*[contains (text(),\"" + args + "\")]")
                             elementFound = self.find ("xpath",  self.locator[1])
-                    else:
+                        except:
+                            eleemntFound = False
+                else:
+                    try:
                         self.locator = (self.config["by"], args)
                         elementFound = self.find (self.config["by"],  args)
-                except:
-                    self.handle_exception ()
-
+                    except:
+                        elementFound = False
+                        
                 sleep (1)
                 countLoop += 1
         elif (self.config["by"] != 'partial_text' and self.config["by"] != 'text'):
@@ -222,37 +226,47 @@ class Selenium (Cmd, object):
         """
         args = self.process_args (args)
 
-        try:
-            self.locate_element ()
-            if args == "page_title":
+        xpath = "//*"
+        self.get = ""
+
+        self.locate_element ()
+        if args == "page_title":
+            try:
                 self.locator = ("browser", "browser") #so that 'equals' and 'contains' gives output, consistent with other locators.
                 self.get = (args, getattr (self.config["browser"], "title"))
                 self.attribute = args
-            else:
-                self.get = (args, getattr (self, "element." + args))
-                self.attribute = args
-            print self.get
-        except:
+            except:
+                self.handle_exception ()
+        elif args == "all":
+            attribs = {'id':'@id', 'name':'@name', 'class':'@class', 'text':'text()'}
+            for attrib in attribs.keys():
+                try:
+                    element_attrib = self.element.get_attribute (attrib)
+                    self.get += str ((attrib, element_attrib)) + "\n"
+                    if not (element_attrib == "" or element_attrib == "None"):
+                        xpath += "[%s='%s']" %(attribs[attrib], element_attrib)
+                except:
+                    self.handle_exception ()
+        else:
             try:
                 if self.element:
                     self.get = (args, self.element.get_attribute (args))
-                    self.attribute = args
-                    print self.get
+                else:
+                    self.get = (args, getattr (self, "element." + args))
+                self.attribute = args
+                
+                if args == "text":
+                    attrib = "text()"
+                else:
+                    attrib = "@%s" %(args)
+                
+                xpath += "[%s='%s']" %(attrib, self.get[1])
             except:
                 self.handle_exception ()
+                        
+        print self.get
 
-        #copy xpath to clipboard.  The produced xpaths may not be usable as such, since these attributes could be inherited.
-        xpath = "//*"
-        attribs = {'id':'@id', 'name':'@name', 'class':'@class', 'text':'text()'}
-        for attrib in attribs.keys():
-            try:
-                element_attrib = self.element.get_attribute (attrib)
-                if not (element_attrib == "" or element_attrib == "None"):
-                    xpath += "[%s='%s']" %(attribs[attrib], element_attrib)
-            except:
-                pass
-        
-        pyperclip.copy (xpath)
+        pyperclip.copy (xpath) #These xpaths may not be usable as such, since these attributes could be inherited.
                         
     def do_equals (self, args):
         "Verifies if the given value is same the most recent get_attribute"
@@ -285,7 +299,7 @@ class Selenium (Cmd, object):
         try:
             print getattr (self, "config")['%s' %(args)]
         except:
-            self.handle_exception ()
+            pass
 
     def do_eval (self, args):
         """Evaluates the given string as a Python statement"""
@@ -377,6 +391,7 @@ class Selenium (Cmd, object):
                 
             return self.wait_until (by, locator, *kwargs) #elementFound
         except:
+            #raise Exception ("No web-elements found!")
             raise
             return False
 
@@ -476,7 +491,10 @@ class Selenium (Cmd, object):
                 return str (arg)
     
     def locate_element (self):
-        self.element = self.elements[int (self.config["index"]) - 1]
+        try:
+            self.element = self.elements[int (self.config["index"]) - 1]
+        except:
+            raise Exception ("Element cannot be located with the given index!")
     
     def build_function (self, action, element):
         pre = re.findall(r'([\w\.]+|".*?")', action) #break into multiple pieces around spaces, unless they're inside double quotes.  However treat Keys.ENTER as a single piece.
