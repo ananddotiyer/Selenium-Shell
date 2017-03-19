@@ -252,7 +252,10 @@ class Selenium (Cmd, object):
         else:
             try:
                 try:
-                    self.get = (args, getattr (self.element, args))
+                    if args != "id":
+                        self.get = (args, getattr (self.element, args))
+                    else:
+                        raise
                 except:
                     self.get = (args, self.element.get_attribute (args))
                 self.attribute = args
