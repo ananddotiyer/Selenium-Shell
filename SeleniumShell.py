@@ -135,6 +135,8 @@ class Selenium (Cmd, object):
             print 'Unable to locate web-element using any of the available locators!'
             print '-'*60            
     
+        self.config["index"] = 1 #reset index every time you find something new
+        
     def do_click (self, args):
         """Clicks on the specified web-element"""
         try:
@@ -249,10 +251,10 @@ class Selenium (Cmd, object):
                     self.handle_exception ()
         else:
             try:
-                if self.element:
+                try:
+                    self.get = (args, getattr (self.element, args))
+                except:
                     self.get = (args, self.element.get_attribute (args))
-                else:
-                    self.get = (args, getattr (self, "element." + args))
                 self.attribute = args
                 
                 if args == "text":
