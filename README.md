@@ -40,7 +40,8 @@ Additional notes
 ==============
 Videos uploaded:
 
-https://www.youtube.com/watch?v=0wdqovuE3vs
-https://www.youtube.com/watch?v=NLgJlAJX_Os
+- https://www.youtube.com/watch?v=0wdqovuE3vs
+- https://www.youtube.com/watch?v=NLgJlAJX_Os
+- https://www.youtube.com/watch?v=kZv8g2I2U-I
 
 Demos folder consists of a few recorded scripts.  Check them out.
