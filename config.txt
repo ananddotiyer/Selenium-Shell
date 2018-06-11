@@ -1,10 +1,10 @@
 homepage = "http:////www.google.com"
 
-geckodriver_path = "D:\\Software\\WebDrivers\\geckodriver.exe"
-chromedriver_path = "D:\Software\WebDrivers\chromedriver.exe"
+geckodriver_path = "C:\Software\geckodriver.exe"
+chromedriver_path = "C:\Software\chromedriver.exe"
 
 #set options
-browser = None
+browser = chrome
 by = None
 until = None
 actions = False

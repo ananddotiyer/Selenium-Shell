@@ -60,13 +60,13 @@ class Selenium (Cmd, object):
                 url = "http://" + url
                 
             if self.config["browser"] == None or self.config["browser"] == "firefox":
-                self.config["browser"] = webdriver.Firefox(executable_path=self.config["geckodriver_path"])
+                self.driver = webdriver.Firefox(executable_path=self.config["geckodriver_path"])
             if self.config["browser"] == "chrome":
-                self.config["browser"] = webdriver.Chrome (self.config["chromedriver_path"])
+                self.driver = webdriver.Chrome (self.config["chromedriver_path"])
             
-            self.config["browser"].get(url)
-            self.config["browser"].maximize_window ()
-            self.config["browser"].implicitly_wait(0)
+            self.driver.get(url)
+            self.driver.maximize_window ()
+            self.driver.implicitly_wait(0)
         except:
             self.handle_exception ()
             
@@ -100,7 +100,7 @@ class Selenium (Cmd, object):
                             self.locator = ("partial_text", "//*[contains (text(),\"" + args + "\")]")
                             elementFound = self.find ("xpath",  self.locator[1])
                         except:
-                            eleemntFound = False
+                            elementFound = False
                 else:
                     try:
                         self.locator = (self.config["by"], args)
@@ -235,7 +235,7 @@ class Selenium (Cmd, object):
         if args == "page_title":
             try:
                 self.locator = ("browser", "browser") #so that 'equals' and 'contains' gives output, consistent with other locators.
-                self.get = (args, getattr (self.config["browser"], "title"))
+                self.get = (args, getattr (self.driver, "title"))
                 self.attribute = args
             except:
                 self.handle_exception ()
@@ -358,7 +358,7 @@ class Selenium (Cmd, object):
         elif args == 'actions':
             self.config["actions"] = False
             try:
-                action_chains = ActionChains(self.config["browser"])
+                action_chains = ActionChains(self.driver)
                 
                 #constructing the actions sequence
                 mod_actions = []
@@ -377,8 +377,8 @@ class Selenium (Cmd, object):
 
     #internal methods
     def quit_browser (self):
-        self.config["browser"].quit ()
-        self.config["browser"] = None
+        self.driver.quit ()
+        self.driver = None
     
     def find (self, by, locator, *kwargs):
         try:
@@ -388,9 +388,9 @@ class Selenium (Cmd, object):
                 by = "partial_link_text"
 
             if self.config["actions"]:
-                self.actions_elements.append (getattr (self.config["browser"], "find_element_by_" + by) (locator))
+                self.actions_elements.append (getattr (self.driver, "find_element_by_" + by) (locator))
             else:
-                self.elements = getattr (self.config["browser"], "find_elements_by_" + by) (locator) #this won't raise an exception, but return an empty list
+                self.elements = getattr (self.driver, "find_elements_by_" + by) (locator) #this won't raise an exception, but return an empty list
                 if len (self.elements) == 0:
                     raise
                 
@@ -419,7 +419,7 @@ class Selenium (Cmd, object):
     def wait_until (self, by, path, *args):
         """Wait until expected condition is met.  Used internal to find method"""
         try:
-            wait = WebDriverWait(self.config["browser"], 10)
+            wait = WebDriverWait(self.driver, 10)
             if self.config["until"] == "click":
                 _ = wait.until(EC.element_to_be_clickable((by, path)))
             if self.config["until"] == "present":
@@ -448,15 +448,15 @@ class Selenium (Cmd, object):
         
         #remember last element to highlight
         self.last_element = self.element
-        self.last_border = self.config["browser"].execute_script (SCRIPT_GET_ELEMENT_BORDER, self.element)
-        #self.config["browser"].execute_script("arguments[0].style.border='2px solid red'", self.element)
+        self.last_border = self.driver.execute_script (SCRIPT_GET_ELEMENT_BORDER, self.element)
+        #self.driver.execute_script("arguments[0].style.border='2px solid red'", self.element)
 
     def unhighlight_last (self):
         with open ("unhighlight_last.js") as script_unhighlight_last:
             SCRIPT_UNHIGHLIGHT_LAST = ''.join (script_unhighlight_last.readlines ())
 
         try:
-            self.config["browser"].execute_script (SCRIPT_UNHIGHLIGHT_LAST, self.last_element, self.last_border);
+            self.driver.execute_script (SCRIPT_UNHIGHLIGHT_LAST, self.last_element, self.last_border);
         except:
             pass
 
@@ -554,6 +554,7 @@ class Selenium (Cmd, object):
                 break
             except KeyboardInterrupt:
                 print("^C")
+                sys.exit(1)
 
     def default (self, line):
         pass
